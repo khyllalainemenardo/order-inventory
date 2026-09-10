@@ -1,0 +1,255 @@
+:root {
+  --paper: #e4e7e9;
+  --panel: #fbfbfa;
+  --ink: #17262e;
+  --muted: #5c6e77;
+  --rule: #c3cbcf;
+  --signal: #f5b715;
+  --yes: #0e6b4f;
+  --no: #a32118;
+
+  --measure: 62ch;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.desk {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 1.3rem + 2vw, 2.7rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.masthead p {
+  margin: 0.6rem 0 0;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+
+.counter {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  align-items: start;
+  margin-top: 2.75rem;
+  border-top: 2px solid var(--ink);
+  padding-top: 1.75rem;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* --- stock ledger ------------------------------------------------------ */
+
+.ledger ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.row:first-child {
+  border-top: 1px solid var(--rule);
+}
+
+.sku {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.product {
+  font-size: 1.05rem;
+}
+
+.count {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 2.1rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.row.empty .product,
+.row.empty .count {
+  color: var(--muted);
+}
+
+.row.empty .count::after {
+  content: ' out';
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0;
+}
+
+/* --- order form -------------------------------------------------------- */
+
+.order {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 1.5rem;
+}
+
+.order form {
+  display: grid;
+  gap: 0.4rem;
+}
+
+label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+label + * {
+  margin-bottom: 0.9rem;
+}
+
+select,
+input[type='number'] {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+}
+
+input[type='number'] {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+select:focus-visible,
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+button {
+  margin-top: 0.3rem;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--signal);
+  border: 1px solid #d19c05;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #ffc82c;
+}
+
+button:disabled {
+  background: var(--rule);
+  border-color: var(--rule);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.hint,
+.notice {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.notice {
+  border-left: 3px solid var(--no);
+  padding-left: 0.75rem;
+}
+
+/* --- result slip ------------------------------------------------------- */
+
+.slip {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--rule);
+}
+
+.stamp {
+  display: inline-block;
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border: 2px solid currentColor;
+  transform: rotate(-2.5deg);
+  animation: press 220ms cubic-bezier(0.2, 1.4, 0.5, 1);
+}
+
+.slip.yes .stamp {
+  color: var(--yes);
+}
+
+.slip.no .stamp {
+  color: var(--no);
+}
+
+.verdict {
+  margin: 0.9rem 0 0;
+  max-width: var(--measure);
+}
+
+@keyframes press {
+  from {
+    transform: rotate(-2.5deg) scale(1.35);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(-2.5deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+}
+
+@media (max-width: 46rem) {
+  .counter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .count {
+    font-size: 1.6rem;
+  }
+}

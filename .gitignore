@@ -1,0 +1,21 @@
+# --- secrets: never commit these ---
+.env
+.env.local
+*.env
+!frontend/.env.example
+backend/src/main/resources/application-local.properties
+
+# --- java / maven ---
+target/
+*.class
+
+# --- node ---
+node_modules/
+dist/
+npm-debug.log*
+
+# --- editors / os ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
