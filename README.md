@@ -83,7 +83,7 @@ Payload   {"productId":"P200","quantity":2}
 Response  {"status":"CONFIRMED",
            "reason":null,
            "inventory":{"productId":"P200","name":"Mechanical Keyboard","stock":8}}
-<img width="975" height="543" alt="image" src="https://github.com/user-attachments/assets/490615a9-4f4f-4b72-ac48-5dd60af37088" />
+
 
 ```
 
@@ -100,7 +100,7 @@ Payload   {"productId":"P300","quantity":1}
 Response  {"status":"REJECTED",
            "reason":"Only 0 of USB-C Hub left, 1 requested.",
            "inventory":{"productId":"P300","name":"USB-C Hub","stock":0}}
-<img width="975" height="548" alt="image" src="https://github.com/user-attachments/assets/dd8a5a01-9133-4255-bd62-59806255b83c" />
+
 
 ```
 
