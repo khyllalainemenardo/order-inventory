@@ -140,3 +140,4 @@ mvn test
 string was ever committed. If one was, rotate the database password in Supabase
 — removing the line in a later commit does not remove it from history.
 "# order-inventory" 
+# order-inventory
