@@ -18,7 +18,7 @@
     <description>Order and Inventory modules integrated in-process over a shared Supabase database</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>19</java.version>
     </properties>
 
     <dependencies>

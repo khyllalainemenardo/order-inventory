@@ -1,4 +1,4 @@
--- Handy between demo runs: clears orders and puts stock back to the seeded values.
+
 delete from public.orders;
 
 update public.inventory set stock = 25 where product_id = 'P100';
