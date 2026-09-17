@@ -2,38 +2,40 @@ package edu.cit.menardo.shop;
 
 import java.util.List;
 
-import edu.cit.menardo.inventory.InventoryService;
-import edu.cit.menardo.inventory.InventoryView;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/orders")
 class OrderController {
 
     private final OrderService orderService;
-    private final InventoryService inventoryService;
 
-    OrderController(OrderService orderService, InventoryService inventoryService) {
+    OrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.inventoryService = inventoryService;
     }
 
     /**
-     * Returns 200 for both outcomes. A rejection is a valid business answer,
-     * not a broken request, and the front-end reads the status field either way.
+     * Returns 200 for both CONFIRMED and REJECTED. A rejection is a valid business
+     * answer, not a broken request, and the front-end reads the status field either way.
      */
-    @PostMapping("/orders")
+    @PostMapping
     OrderResponse placeOrder(@RequestBody OrderRequest request) {
         return orderService.place(request);
     }
 
-    /** Feeds the product dropdown so the front-end has no hard-coded catalogue. */
-    @GetMapping("/inventory")
-    List<InventoryView> inventory() {
-        return inventoryService.listItems();
+    @GetMapping
+    List<OrderSummary> history() {
+        return orderService.history();
+    }
+
+    /** 200 with the cancelled order, 404 if unknown, 409 if already cancelled or rejected. */
+    @PostMapping("/{orderId}/cancel")
+    OrderSummary cancel(@PathVariable String orderId) {
+        return orderService.cancel(orderId);
     }
 }

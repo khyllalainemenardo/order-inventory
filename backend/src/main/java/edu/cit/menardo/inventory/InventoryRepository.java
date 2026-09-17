@@ -22,4 +22,17 @@ interface InventoryRepository extends JpaRepository<InventoryItem, String> {
                and i.stock >= :quantity
             """)
     int deductIfAvailable(@Param("productId") String productId, @Param("quantity") int quantity);
+
+    /**
+     * Unconditional increment for cancellations.
+     *
+     * @return 1 if the product exists, 0 otherwise
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update InventoryItem i
+               set i.stock = i.stock + :quantity
+             where i.productId = :productId
+            """)
+    int addStock(@Param("productId") String productId, @Param("quantity") int quantity);
 }

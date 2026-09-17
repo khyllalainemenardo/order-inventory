@@ -1,5 +1,10 @@
 package edu.cit.menardo.shop;
 
-/** POST /api/orders body. */
-public record OrderRequest(String productId, Integer quantity) {
+import java.util.List;
+
+/** POST /api/orders body: { items: [{ productId, quantity }, ...] }. */
+public record OrderRequest(List<Item> items) {
+
+    public record Item(String productId, Integer quantity) {
+    }
 }

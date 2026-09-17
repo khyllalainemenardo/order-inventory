@@ -26,6 +26,13 @@ class InventoryItem {
         // required by JPA
     }
 
+    /** For tests only - rows are created by db/schema.sql. */
+    InventoryItem(String productId, String name, int stock) {
+        this.productId = productId;
+        this.name = name;
+        this.stock = stock;
+    }
+
     String getProductId() {
         return productId;
     }
@@ -38,7 +45,7 @@ class InventoryItem {
         return stock;
     }
 
-    InventoryView toView() {
-        return new InventoryView(productId, name, stock);
+    InventoryView toView(int lowStockThreshold) {
+        return new InventoryView(productId, name, stock, stock < lowStockThreshold);
     }
 }

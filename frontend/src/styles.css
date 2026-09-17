@@ -7,6 +7,9 @@
   --signal: #f5b715;
   --yes: #0e6b4f;
   --no: #a32118;
+  --low: #9a5b00;
+  --low-wash: #fbeccb;
+  --out-wash: #f6dcd9;
 
   --measure: 62ch;
 }
@@ -27,8 +30,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+p {
+  margin: 0;
+}
+
 .desk {
-  max-width: 62rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
@@ -41,7 +48,7 @@ body {
 }
 
 .masthead p {
-  margin: 0.6rem 0 0;
+  margin-top: 0.6rem;
   max-width: var(--measure);
   color: var(--muted);
 }
@@ -49,11 +56,18 @@ body {
 .counter {
   display: grid;
   gap: 2.5rem;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
   align-items: start;
   margin-top: 2.75rem;
   border-top: 2px solid var(--ink);
   padding-top: 1.75rem;
+}
+
+.main-column,
+.side-column {
+  display: grid;
+  gap: 2.5rem;
+  min-width: 0;
 }
 
 h2 {
@@ -63,31 +77,79 @@ h2 {
   color: var(--muted);
 }
 
-/* --- stock ledger ------------------------------------------------------ */
-
-.ledger ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 4.5rem 1fr auto;
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 1rem;
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--rule);
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
 }
 
-.row:first-child {
-  border-top: 1px solid var(--rule);
+.section-note {
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .sku {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.hint,
+.notice {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.notice {
+  border-left: 3px solid var(--no);
+  padding-left: 0.75rem;
+  color: var(--ink);
+}
+
+.notice.banner {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--out-wash);
+}
+
+/* --- shelf table ------------------------------------------------------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.shelf {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shelf th {
+  padding: 0 0.75rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--ink);
+}
+
+.shelf td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: baseline;
+}
+
+.shelf .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.shelf .sku {
+  display: inline-block;
+  width: 3.75rem;
 }
 
 .product {
@@ -102,19 +164,50 @@ h2 {
   letter-spacing: -0.03em;
 }
 
-.row.empty .product,
-.row.empty .count {
+/* Low stock is the one loud thing on the page: a coloured band plus a
+   written flag, so the state never depends on colour alone. */
+
+.flag {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  vertical-align: 0.15em;
+}
+
+.shelf tr.low td {
+  background: var(--low-wash);
+}
+
+.shelf tr.low td:first-child {
+  box-shadow: inset 4px 0 0 var(--signal);
+}
+
+.shelf tr.low .flag,
+.shelf tr.low .count {
+  color: var(--low);
+}
+
+.shelf tr.out td {
+  background: var(--out-wash);
+}
+
+.shelf tr.out td:first-child {
+  box-shadow: inset 4px 0 0 var(--no);
+}
+
+.shelf tr.out .flag,
+.shelf tr.out .count {
+  color: var(--no);
+}
+
+.empty-cell {
   color: var(--muted);
 }
 
-.row.empty .count::after {
-  content: ' out';
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 0;
-}
-
-/* --- order form -------------------------------------------------------- */
+/* --- cart -------------------------------------------------------------- */
 
 .order {
   background: var(--panel);
@@ -122,7 +215,7 @@ h2 {
   padding: 1.5rem;
 }
 
-.order form {
+.picker {
   display: grid;
   gap: 0.4rem;
 }
@@ -134,6 +227,13 @@ label {
 
 label + * {
   margin-bottom: 0.9rem;
+}
+
+.add-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0;
 }
 
 select,
@@ -160,38 +260,109 @@ button:focus-visible {
 }
 
 button {
-  margin-top: 0.3rem;
-  padding: 0.7rem 1rem;
   font: inherit;
-  font-weight: 600;
   color: var(--ink);
-  background: var(--signal);
-  border: 1px solid #d19c05;
   border-radius: 0;
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
-  background: #ffc82c;
-}
-
 button:disabled {
-  background: var(--rule);
-  border-color: var(--rule);
-  color: var(--muted);
   cursor: not-allowed;
 }
 
-.hint,
-.notice {
-  margin: 1rem 0 0;
-  font-size: 0.9rem;
+button.secondary {
+  padding: 0.6rem 0.8rem;
+  font-weight: 500;
+  background: #fff;
+  border: 1px solid var(--ink);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--paper);
+}
+
+button.place {
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  background: var(--signal);
+  border: 1px solid #d19c05;
+}
+
+button.place:hover:not(:disabled) {
+  background: #ffc82c;
+}
+
+button.place:disabled,
+button.secondary:disabled {
+  background: var(--rule);
+  border-color: var(--rule);
   color: var(--muted);
 }
 
-.notice {
-  border-left: 3px solid var(--no);
-  padding-left: 0.75rem;
+button.link {
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+button.link:hover {
+  color: var(--no);
+}
+
+.cart-lines {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border-top: 1px dashed var(--rule);
+}
+
+.cart-lines li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.line-name {
+  min-width: 0;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rule);
+  background: #fff;
+}
+
+.stepper button {
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: var(--paper);
+}
+
+.stepper button:disabled {
+  color: var(--rule);
+}
+
+.line-qty {
+  min-width: 2rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 /* --- result slip ------------------------------------------------------- */
@@ -204,7 +375,6 @@ button:disabled {
 
 .stamp {
   display: inline-block;
-  margin: 0;
   padding: 0.25rem 0.7rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -222,8 +392,38 @@ button:disabled {
 }
 
 .verdict {
-  margin: 0.9rem 0 0;
+  margin-top: 0.9rem;
   max-width: var(--measure);
+}
+
+.outcomes {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.outcome {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+}
+
+.outcome span:last-child {
+  font-weight: 500;
+}
+
+.outcome.reserved span:last-child {
+  color: var(--yes);
+}
+
+.outcome.insufficient_stock span:last-child {
+  color: var(--no);
+}
+
+.outcome.not_reserved span:last-child {
+  color: var(--muted);
 }
 
 @keyframes press {
@@ -237,19 +437,177 @@ button:disabled {
   }
 }
 
+/* --- order history ----------------------------------------------------- */
+
+.orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink);
+}
+
+.ticket {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ticket-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+}
+
+.ticket-head time {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.badge {
+  padding: 0.05rem 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+}
+
+.ticket.confirmed .badge {
+  color: var(--yes);
+}
+
+.ticket.rejected .badge {
+  color: var(--no);
+}
+
+.ticket.cancelled .badge {
+  color: var(--muted);
+}
+
+.ticket.cancelled .ticket-lines {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+button.cancel {
+  margin-left: auto;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  background: #fff;
+  border: 1px solid var(--no);
+  color: var(--no);
+}
+
+button.cancel:hover:not(:disabled) {
+  background: var(--no);
+  color: #fff;
+}
+
+button.cancel:disabled {
+  border-color: var(--rule);
+  color: var(--muted);
+}
+
+.ticket-lines {
+  margin-top: 0.4rem;
+}
+
+.ticket-reason {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* --- activity feed ----------------------------------------------------- */
+
+.feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+.feed-entry {
+  padding: 0.6rem 0.75rem 0.6rem 0.85rem;
+  border-left: 3px solid var(--rule);
+}
+
+.feed-entry + .feed-entry {
+  margin-top: 0.35rem;
+}
+
+.feed-entry.confirmed {
+  border-left-color: var(--yes);
+}
+
+.feed-entry.rejected {
+  border-left-color: var(--no);
+}
+
+.feed-entry.low-stock {
+  border-left-color: var(--signal);
+  background: var(--low-wash);
+}
+
+.feed-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.feed-kind {
+  font-weight: 600;
+}
+
+.feed-entry.confirmed .feed-kind {
+  color: var(--yes);
+}
+
+.feed-entry.rejected .feed-kind {
+  color: var(--no);
+}
+
+.feed-entry.low-stock .feed-kind {
+  color: var(--low);
+}
+
+.feed-message {
+  margin-top: 0.15rem;
+  font-size: 0.92rem;
+}
+
+/* --- small screens and motion ------------------------------------------ */
+
 @media (prefers-reduced-motion: reduce) {
   .stamp {
     animation: none;
   }
 }
 
-@media (max-width: 46rem) {
+@media (max-width: 52rem) {
   .counter {
     grid-template-columns: minmax(0, 1fr);
     gap: 2rem;
   }
 
+  /* Flatten the two columns so the cart sits right under the shelf. */
+  .main-column,
+  .side-column {
+    display: contents;
+  }
+
+  .ledger { order: 1; }
+  .order { order: 2; }
+  .history { order: 3; }
+  .feed { order: 4; }
+
   .count {
     font-size: 1.6rem;
+  }
+
+  button.cancel {
+    margin-left: 0;
   }
 }
