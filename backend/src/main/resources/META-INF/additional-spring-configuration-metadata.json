@@ -1,0 +1,29 @@
+{
+  "properties": [
+    {
+      "name": "supabase.db.url",
+      "type": "java.lang.String",
+      "description": "JDBC URL of the Supabase session pooler."
+    },
+    {
+      "name": "supabase.db.user",
+      "type": "java.lang.String",
+      "description": "Supabase database user."
+    },
+    {
+      "name": "supabase.db.password",
+      "type": "java.lang.String",
+      "description": "Supabase database password."
+    },
+    {
+      "name": "inventory.low-stock-threshold",
+      "type": "java.lang.Integer",
+      "description": "Stock below this number counts as low stock."
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.lang.String[]",
+      "description": "Front-end origins allowed to call the API."
+    }
+  ]
+}

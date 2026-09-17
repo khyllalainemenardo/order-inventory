@@ -48,7 +48,6 @@ export default function Cart({ stock, onPlaced }) {
     try {
       const order = await api.placeOrder(lines)
       setResult({ ...order, at: Date.now() })
-      // A confirmed order empties the cart; a rejected one stays so it can be adjusted.
       if (order.status === 'CONFIRMED') setLines([])
       await onPlaced()
     } catch (e) {

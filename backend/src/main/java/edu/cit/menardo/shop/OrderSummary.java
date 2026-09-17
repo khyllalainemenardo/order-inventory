@@ -4,7 +4,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/** One entry of GET /api/orders, also returned by the cancel endpoint. */
 public record OrderSummary(UUID orderId,
                            String status,
                            String reason,

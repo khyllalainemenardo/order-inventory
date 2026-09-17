@@ -10,15 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * The Lab 2 dependency rule, checked against the source files:
- *
- *   - shop and inventory never import anything from notification;
- *   - notification imports nothing from shop or inventory except their events
- *     packages, and never mentions OrderService or InventoryService.
- *
- * Maven and IntelliJ both run tests with the backend folder as working directory.
- */
+
 class ModuleDependencyTest {
 
     private static final Path ROOT = Path.of("src/main/java/edu/cit/menardo");

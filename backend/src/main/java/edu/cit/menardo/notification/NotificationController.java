@@ -3,12 +3,10 @@ package edu.cit.menardo.notification;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** GET /api/notifications - the activity feed, newest first. */
 @RestController
-@RequestMapping("/api")
+@SuppressWarnings("unused")
 class NotificationController {
 
     private final NotificationRepository repository;
@@ -17,9 +15,9 @@ class NotificationController {
         this.repository = repository;
     }
 
-    @GetMapping("/notifications")
+    @GetMapping("/api/notifications")
     List<NotificationView> notifications() {
-        return repository.findTop100ByOrderByCreatedAtDescNotificationIdDesc().stream()
+        return repository.findTop100ByOrderByNotificationIdDesc().stream()
                 .map(NotificationRecord::toView)
                 .toList();
     }

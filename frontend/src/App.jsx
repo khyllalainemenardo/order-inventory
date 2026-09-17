@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from './api.js'
 import Shelf from './components/Shelf.jsx'
 import Cart from './components/Cart.jsx'
@@ -11,8 +11,7 @@ export default function App() {
   const [feed, setFeed] = useState([])
   const [offline, setOffline] = useState(false)
 
-
-  const refreshAll = useCallback(async () => {
+  async function refreshAll() {
     try {
       const [items, history, notifications] = await Promise.all([
         api.inventory(),
@@ -26,11 +25,11 @@ export default function App() {
     } catch {
       setOffline(true)
     }
-  }, [])
+  }
 
   useEffect(() => {
     refreshAll()
-  }, [refreshAll])
+  }, [])
 
   const names = Object.fromEntries(stock.map((item) => [item.productId, item.name]))
 

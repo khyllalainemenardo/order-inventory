@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 interface OrderRepository extends JpaRepository<OrderRecord, UUID> {
 
-    /** Order history, newest first, with line items loaded in the same query. */
     @EntityGraph(attributePaths = "items")
     List<OrderRecord> findAllByOrderByCreatedAtDesc();
 }

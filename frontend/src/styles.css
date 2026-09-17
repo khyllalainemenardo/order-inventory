@@ -116,8 +116,6 @@ h2 {
   background: var(--out-wash);
 }
 
-/* --- shelf table ------------------------------------------------------- */
-
 .table-wrap {
   overflow-x: auto;
 }
@@ -164,9 +162,6 @@ h2 {
   letter-spacing: -0.03em;
 }
 
-/* Low stock is the one loud thing on the page: a coloured band plus a
-   written flag, so the state never depends on colour alone. */
-
 .flag {
   display: inline-block;
   margin-left: 0.75rem;
@@ -206,8 +201,6 @@ h2 {
 .empty-cell {
   color: var(--muted);
 }
-
-/* --- cart -------------------------------------------------------------- */
 
 .order {
   background: var(--panel);
@@ -365,8 +358,6 @@ button.link:hover {
   text-align: center;
 }
 
-/* --- result slip ------------------------------------------------------- */
-
 .slip {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
@@ -436,8 +427,6 @@ button.link:hover {
     opacity: 1;
   }
 }
-
-/* --- order history ----------------------------------------------------- */
 
 .orders {
   list-style: none;
@@ -517,8 +506,6 @@ button.cancel:disabled {
   color: var(--muted);
 }
 
-/* --- activity feed ----------------------------------------------------- */
-
 .feed-list {
   list-style: none;
   margin: 0;
@@ -578,8 +565,6 @@ button.cancel:disabled {
   font-size: 0.92rem;
 }
 
-/* --- small screens and motion ------------------------------------------ */
-
 @media (prefers-reduced-motion: reduce) {
   .stamp {
     animation: none;
@@ -592,7 +577,6 @@ button.cancel:disabled {
     gap: 2rem;
   }
 
-  /* Flatten the two columns so the cart sits right under the shelf. */
   .main-column,
   .side-column {
     display: contents;

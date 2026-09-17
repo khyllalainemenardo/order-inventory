@@ -15,7 +15,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** The low-stock rule and restock, with the repository mocked. */
 class InventoryServiceImplTest {
 
     private final InventoryRepository repository = mock(InventoryRepository.class);
@@ -25,7 +24,6 @@ class InventoryServiceImplTest {
     @Test
     void publishesLowStockWhenAReservationDropsBelowTheThreshold() {
         when(repository.findById("P200")).thenReturn(
-                Optional.of(new InventoryItem("P200", "Mechanical Keyboard", 10)),
                 Optional.of(new InventoryItem("P200", "Mechanical Keyboard", 4)));
         when(repository.deductIfAvailable("P200", 6)).thenReturn(1);
 
@@ -39,7 +37,6 @@ class InventoryServiceImplTest {
     @Test
     void staysQuietWhenStockIsStillAtOrAboveTheThreshold() {
         when(repository.findById("P100")).thenReturn(
-                Optional.of(new InventoryItem("P100", "Wireless Mouse", 25)),
                 Optional.of(new InventoryItem("P100", "Wireless Mouse", 5)));
         when(repository.deductIfAvailable("P100", 20)).thenReturn(1);
 

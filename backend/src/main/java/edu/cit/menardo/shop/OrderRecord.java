@@ -2,7 +2,6 @@ package edu.cit.menardo.shop;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,12 +15,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
-/**
- * Maps the orders table. Named OrderRecord because "order" is a reserved word
- * in SQL and a confusing class name next to java.util.
- *
- * Since Lab 2 the product and quantity live on the line items.
- */
 @Entity
 @Table(name = "orders")
 class OrderRecord {
@@ -32,24 +25,21 @@ class OrderRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "order_id", nullable = false, updatable = false)
+    @Column(name = "order_id")
     private UUID orderId;
 
-    @Column(name = "status", nullable = false)
     private String status;
 
-    @Column(name = "reason")
     private String reason;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     @OrderBy("id")
-    private List<OrderItemRecord> items = new ArrayList<>();
+    private final List<OrderItemRecord> items = new ArrayList<>();
 
     protected OrderRecord() {
-        // required by JPA
     }
 
     OrderRecord(String status, String reason) {
@@ -83,6 +73,6 @@ class OrderRecord {
     }
 
     List<OrderItemRecord> getItems() {
-        return Collections.unmodifiableList(items);
+        return items;
     }
 }

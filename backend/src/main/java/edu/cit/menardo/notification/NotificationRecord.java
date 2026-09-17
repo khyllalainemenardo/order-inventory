@@ -9,32 +9,23 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** Maps the notifications table. Package-private: only this module writes to it. */
 @Entity
 @Table(name = "notifications")
 class NotificationRecord {
 
-    static final String ORDER_CONFIRMED = "ORDER_CONFIRMED";
-    static final String ORDER_REJECTED = "ORDER_REJECTED";
-    static final String ORDER_CANCELLED = "ORDER_CANCELLED";
-    static final String LOW_STOCK = "LOW_STOCK";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "notification_id", nullable = false, updatable = false)
+    @Column(name = "notification_id")
     private Long notificationId;
 
-    @Column(name = "type", nullable = false)
     private String type;
 
-    @Column(name = "message", nullable = false)
     private String message;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
     protected NotificationRecord() {
-        // required by JPA
     }
 
     NotificationRecord(String type, String message) {

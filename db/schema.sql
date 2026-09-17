@@ -3,8 +3,6 @@ drop table if exists public.order_items;
 drop table if exists public.orders;
 drop table if exists public.inventory;
 
--- Inventory module -----------------------------------------------------------
-
 create table public.inventory (
     product_id text primary key,
     name       text    not null,
@@ -29,8 +27,6 @@ create table public.order_items (
 
 create index order_items_order_id_idx on public.order_items (order_id);
 
--- Notification module --------------------------------------------------------
-
 create table public.notifications (
     notification_id bigint generated always as identity primary key,
     type            text        not null check (type in ('ORDER_CONFIRMED', 'ORDER_REJECTED',
@@ -41,13 +37,10 @@ create table public.notifications (
 
 create index notifications_created_at_idx on public.notifications (created_at desc);
 
-
 alter table public.inventory     enable row level security;
 alter table public.orders        enable row level security;
 alter table public.order_items   enable row level security;
 alter table public.notifications enable row level security;
-
--- Seed data  --------------------------------------------------
 
 insert into public.inventory (product_id, name, stock)
 values ('P100', 'Wireless Mouse', 25),

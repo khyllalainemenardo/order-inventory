@@ -12,10 +12,6 @@ import java.util.UUID;
 import edu.cit.menardo.inventory.InventoryService;
 import edu.cit.menardo.inventory.InventoryView;
 import edu.cit.menardo.inventory.ReservationResult;
-import edu.cit.menardo.shop.OrderExceptions.InvalidOrderException;
-import edu.cit.menardo.shop.OrderExceptions.OrderNotFoundException;
-import edu.cit.menardo.shop.OrderExceptions.OrderStateException;
-import edu.cit.menardo.shop.OrderExceptions.ReservationConflictException;
 import edu.cit.menardo.shop.OrderResponse.ItemOutcome;
 import edu.cit.menardo.shop.events.OrderCancelledEvent;
 import edu.cit.menardo.shop.events.OrderPlacedEvent;
@@ -32,10 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * No database and no Spring context. Order depends on the InventoryService
- * interface only, so an in-memory fake is enough to test every path.
- */
 class OrderServiceTest {
 
     private final OrderRepository orders = mock(OrderRepository.class);
@@ -44,6 +36,7 @@ class OrderServiceTest {
     private OrderService service;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         when(orders.save(any(OrderRecord.class))).thenAnswer(call -> call.getArgument(0));
         inventory = new FakeInventory(Map.of(
@@ -52,8 +45,6 @@ class OrderServiceTest {
                 "P300", 0));
         service = new OrderService(inventory, orders, events);
     }
-
-    // --- placing orders ------------------------------------------------------
 
     @Test
     void confirmsWhenEveryLineHasStock() {
@@ -94,7 +85,6 @@ class OrderServiceTest {
 
     @Test
     void mergesDuplicateLinesBeforeValidating() {
-        // 6 + 6 of P200 is 12, more than the 10 in stock - the merged total is what counts.
         OrderResponse response = service.place(order(line("P200", 6), line("P200", 6)));
 
         assertThat(response.status()).isEqualTo("REJECTED");
@@ -106,30 +96,26 @@ class OrderServiceTest {
     @Test
     void rejectsMalformedRequests() {
         assertThatThrownBy(() -> service.place(new OrderRequest(List.of())))
-                .isInstanceOf(InvalidOrderException.class);
+                .isInstanceOf(OrderException.class);
         assertThatThrownBy(() -> service.place(order(line("P100", 0))))
-                .isInstanceOf(InvalidOrderException.class);
+                .isInstanceOf(OrderException.class);
         assertThatThrownBy(() -> service.place(order(line(" ", 1))))
-                .isInstanceOf(InvalidOrderException.class);
+                .isInstanceOf(OrderException.class);
         assertThatThrownBy(() -> service.place(order(line("P999", 1))))
-                .isInstanceOf(InvalidOrderException.class)
+                .isInstanceOf(OrderException.class)
                 .hasMessageContaining("P999");
         assertThat(inventory.reserveCalls).isZero();
     }
 
     @Test
     void throwsSoTheTransactionRollsBackWhenStockChangesMidOrder() {
-        inventory.failReserveFor.add("P200"); // validation passes, reservation loses a race
+        inventory.failReserveFor.add("P200");
 
         assertThatThrownBy(() -> service.place(order(line("P100", 1), line("P200", 1))))
-                .isInstanceOf(ReservationConflictException.class)
-                .satisfies(e -> assertThat(((ReservationConflictException) e).items())
-                        .extracting(ItemOutcome::outcome)
-                        .containsExactly(ItemOutcome.NOT_RESERVED, ItemOutcome.INSUFFICIENT_STOCK));
+                .isInstanceOf(OrderException.class)
+                .hasMessageContaining("Stock changed");
         verify(orders, never()).save(any(OrderRecord.class));
     }
-
-    // --- cancelling ----------------------------------------------------------
 
     @Test
     void cancelReturnsEveryLineToStock() {
@@ -147,9 +133,9 @@ class OrderServiceTest {
     @Test
     void cancelUnknownOrderIsNotFound() {
         assertThatThrownBy(() -> service.cancel(UUID.randomUUID().toString()))
-                .isInstanceOf(OrderNotFoundException.class);
+                .isInstanceOf(OrderException.class);
         assertThatThrownBy(() -> service.cancel("not-a-uuid"))
-                .isInstanceOf(OrderNotFoundException.class);
+                .isInstanceOf(OrderException.class);
     }
 
     @Test
@@ -158,7 +144,7 @@ class OrderServiceTest {
         service.cancel(order.getOrderId().toString());
 
         assertThatThrownBy(() -> service.cancel(order.getOrderId().toString()))
-                .isInstanceOf(OrderStateException.class)
+                .isInstanceOf(OrderException.class)
                 .hasMessageContaining("already cancelled");
         assertThat(inventory.restockCalls).isEqualTo(1);
     }
@@ -168,11 +154,9 @@ class OrderServiceTest {
         OrderRecord rejected = storedOrder("REJECTED", Map.of("P300", 1));
 
         assertThatThrownBy(() -> service.cancel(rejected.getOrderId().toString()))
-                .isInstanceOf(OrderStateException.class);
+                .isInstanceOf(OrderException.class);
         assertThat(inventory.restockCalls).isZero();
     }
-
-    // --- helpers -------------------------------------------------------------
 
     private static OrderRequest order(OrderRequest.Item... lines) {
         return new OrderRequest(List.of(lines));
@@ -182,7 +166,6 @@ class OrderServiceTest {
         return new OrderRequest.Item(productId, quantity);
     }
 
-    /** An order as if loaded from the database, with a known id. */
     private OrderRecord storedOrder(String status, Map<String, Integer> lines) {
         UUID id = UUID.randomUUID();
         OrderRecord order = new OrderRecord(status, null) {
@@ -196,7 +179,6 @@ class OrderServiceTest {
         return order;
     }
 
-    /** In-memory InventoryService that counts calls. */
     private static class FakeInventory implements InventoryService {
 
         private final Map<String, Integer> stock = new LinkedHashMap<>();
