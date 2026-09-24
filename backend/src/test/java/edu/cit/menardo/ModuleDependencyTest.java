@@ -35,11 +35,32 @@ class ModuleDependencyTest {
             for (String line : source.lines().filter(l -> l.startsWith("import edu.cit.menardo.")).toList()) {
                 assertThat(line)
                         .as(file + " may only import event classes")
-                        .matches("import edu\\.cit\\.menardo\\.(shop|inventory)\\.events\\.\\w+;");
+                        .matches("import edu\\.cit\\.menardo\\.(shop|inventory|supplier)\\.events\\.\\w+;");
             }
             assertThat(source).as(file.toString())
                     .doesNotContain("OrderService")
                     .doesNotContain("InventoryService");
+        }
+    }
+
+    @Test
+    void orderAndInventoryKnowNothingAboutLegacySupply() throws IOException {
+        for (String module : List.of("shop", "inventory")) {
+            for (Path file : javaFiles(module)) {
+                String source = Files.readString(file);
+                assertThat(source).as(file.toString())
+                        .doesNotContain("LegacySupply")
+                        .doesNotContain("SupplierSku")
+                        .doesNotContain("PackSize")
+                        .doesNotContain("Uom")
+                        .doesNotContain("StatusCode")
+                        .doesNotContain("WLU-");
+                for (String line : source.lines().filter(l -> l.startsWith("import edu.cit.menardo.supplier")).toList()) {
+                    assertThat(line)
+                            .as(file + " may only use the supplier gateway, its result types and events")
+                            .matches("import edu\\.cit\\.menardo\\.supplier\\.(SupplierGateway|ReorderResult|SupplierOrderStatus|events\\.\\w+);");
+                }
+            }
         }
     }
 

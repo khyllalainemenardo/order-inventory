@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.cit.menardo.inventory.events.LowStockEvent;
+import edu.cit.menardo.supplier.SupplierGateway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -15,14 +16,20 @@ class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository repository;
     private final ApplicationEventPublisher events;
+    private final SupplierGateway supplierGateway;
     private final int lowStockThreshold;
+    private final int reorderTarget;
 
     InventoryServiceImpl(InventoryRepository repository,
                          ApplicationEventPublisher events,
-                         @Value("${inventory.low-stock-threshold}") int lowStockThreshold) {
+                         SupplierGateway supplierGateway,
+                         @Value("${inventory.low-stock-threshold}") int lowStockThreshold,
+                         @Value("${inventory.reorder-target}") int reorderTarget) {
         this.repository = repository;
         this.events = events;
+        this.supplierGateway = supplierGateway;
         this.lowStockThreshold = lowStockThreshold;
+        this.reorderTarget = reorderTarget;
     }
 
     @Override
@@ -50,6 +57,7 @@ class InventoryServiceImpl implements InventoryService {
 
         if (item.lowStock()) {
             events.publishEvent(new LowStockEvent(item.productId(), item.name(), item.stock(), lowStockThreshold));
+            supplierGateway.requestReorder(item.productId(), reorderTarget - item.stock());
         }
         return ReservationResult.confirmed(item);
     }

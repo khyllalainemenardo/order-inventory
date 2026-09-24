@@ -4,23 +4,27 @@ import Shelf from './components/Shelf.jsx'
 import Cart from './components/Cart.jsx'
 import OrderHistory from './components/OrderHistory.jsx'
 import ActivityFeed from './components/ActivityFeed.jsx'
+import SupplierOrders from './components/SupplierOrders.jsx'
 
 export default function App() {
   const [stock, setStock] = useState([])
   const [orders, setOrders] = useState([])
   const [feed, setFeed] = useState([])
+  const [reorders, setReorders] = useState([])
   const [offline, setOffline] = useState(false)
 
   async function refreshAll() {
     try {
-      const [items, history, notifications] = await Promise.all([
+      const [items, history, notifications, supplierOrders] = await Promise.all([
         api.inventory(),
         api.orders(),
-        api.notifications()
+        api.notifications(),
+        api.supplierOrders()
       ])
       setStock(items)
       setOrders(history)
       setFeed(notifications)
+      setReorders(supplierOrders)
       setOffline(false)
     } catch {
       setOffline(true)
@@ -29,6 +33,8 @@ export default function App() {
 
   useEffect(() => {
     refreshAll()
+    const timer = setInterval(refreshAll, 10000)
+    return () => clearInterval(timer)
   }, [])
 
   const names = Object.fromEntries(stock.map((item) => [item.productId, item.name]))
@@ -54,6 +60,7 @@ export default function App() {
         <div className="main-column">
           <Shelf stock={stock} />
           <OrderHistory orders={orders} names={names} onChanged={refreshAll} />
+          <SupplierOrders orders={reorders} names={names} />
         </div>
 
         <aside className="side-column">

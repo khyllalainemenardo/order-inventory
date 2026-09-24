@@ -4,7 +4,10 @@ const KIND = {
   ORDER_CONFIRMED: { className: 'confirmed', label: 'Confirmed' },
   ORDER_REJECTED: { className: 'rejected', label: 'Rejected' },
   ORDER_CANCELLED: { className: 'cancelled', label: 'Cancelled' },
-  LOW_STOCK: { className: 'low-stock', label: 'Reorder' }
+  LOW_STOCK: { className: 'low-stock', label: 'Low stock' },
+  REORDER_PLACED: { className: 'confirmed', label: 'Reorder sent' },
+  REORDER_DELIVERED: { className: 'confirmed', label: 'Delivered' },
+  REORDER_STOPPED: { className: 'rejected', label: 'Reorder stopped' }
 }
 
 export default function ActivityFeed({ entries }) {

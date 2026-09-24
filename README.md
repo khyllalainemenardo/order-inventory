@@ -200,3 +200,19 @@ to the new Notification service. The `OrderService` and `InventoryService` would
 
 
 
+
+## Lab 3: Supplier module (LegacySupply)
+
+The `supplier` module is an Anti-Corruption Layer. When stock drops below the threshold,
+Inventory calls `SupplierGateway.requestReorder(productId, unitsNeeded)`. The supplier module
+then places and tracks a purchase order with LegacySupply. When the order is delivered it
+publishes `SupplierOrderDelivered`, and Inventory restocks.
+
+Set the API key before starting the backend (never commit it):
+
+```powershell
+$env:LS_API_KEY='your-legacysupply-api-key'
+```
+
+See [INTEGRATION.md](INTEGRATION.md) for the product mapping, session lifetime, error codes and
+resilience rules, and [REFLECTION.md](REFLECTION.md) for the reflection answers.

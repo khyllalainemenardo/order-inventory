@@ -24,6 +24,41 @@
       "name": "app.cors.allowed-origins",
       "type": "java.lang.String[]",
       "description": "Front-end origins allowed to call the API."
+    },
+    {
+      "name": "inventory.reorder-target",
+      "type": "java.lang.Integer",
+      "description": "Stock level a reorder tries to reach."
+    },
+    {
+      "name": "legacysupply.base-url",
+      "type": "java.lang.String",
+      "description": "LegacySupply API base URL."
+    },
+    {
+      "name": "legacysupply.client-id",
+      "type": "java.lang.String",
+      "description": "LegacySupply client ID (student ID)."
+    },
+    {
+      "name": "legacysupply.api-key",
+      "type": "java.lang.String",
+      "description": "LegacySupply API key. Keep it out of Git."
+    },
+    {
+      "name": "legacysupply.session-renew-after-seconds",
+      "type": "java.lang.Long",
+      "description": "Sign in again after this many seconds."
+    },
+    {
+      "name": "supplier.send-pending-every-ms",
+      "type": "java.lang.Long",
+      "description": "How often PENDING reorders are retried."
+    },
+    {
+      "name": "supplier.track-deliveries-every-ms",
+      "type": "java.lang.Long",
+      "description": "How often open supplier orders are checked."
     }
   ]
 }
