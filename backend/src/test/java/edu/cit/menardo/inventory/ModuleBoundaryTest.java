@@ -7,10 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Proof for the rubric: the implementation and its collaborators are not public,
- * so nothing outside edu.cit.menardo.inventory can reference them.
- */
 class ModuleBoundaryTest {
 
     @Test

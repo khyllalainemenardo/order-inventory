@@ -3,36 +3,14 @@ package edu.cit.menardo.inventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 interface InventoryRepository extends JpaRepository<InventoryItem, String> {
 
-    /**
-     * Conditional decrement. The "is there enough?" check and the write happen in
-     * one statement, so two orders arriving at the same moment cannot both pass a
-     * check and drive stock negative.
-     *
-     * @return 1 if stock was deducted, 0 if there was not enough
-     */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update InventoryItem i
-               set i.stock = i.stock - :quantity
-             where i.productId = :productId
-               and i.stock >= :quantity
-            """)
-    int deductIfAvailable(@Param("productId") String productId, @Param("quantity") int quantity);
+    @Query("update InventoryItem i set i.stock = i.stock - :quantity where i.productId = :productId and i.stock >= :quantity")
+    int deductIfAvailable(String productId, int quantity);
 
-    /**
-     * Unconditional increment for cancellations.
-     *
-     * @return 1 if the product exists, 0 otherwise
-     */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update InventoryItem i
-               set i.stock = i.stock + :quantity
-             where i.productId = :productId
-            """)
-    int addStock(@Param("productId") String productId, @Param("quantity") int quantity);
+    @Query("update InventoryItem i set i.stock = i.stock + :quantity where i.productId = :productId")
+    int addStock(String productId, int quantity);
 }
