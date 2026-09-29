@@ -28,6 +28,7 @@ export const api = {
   inventory: () => request('/api/inventory'),
   orders: () => request('/api/orders'),
   notifications: () => request('/api/notifications'),
+  supplierOrders: () => request('/api/supplier-orders'),
   placeOrder: (items) =>
     request('/api/orders', { method: 'POST', body: JSON.stringify({ items }) }),
   cancelOrder: (orderId) =>

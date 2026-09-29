@@ -3,12 +3,15 @@ package edu.cit.menardo.inventory;
 import java.util.Optional;
 
 import edu.cit.menardo.inventory.events.LowStockEvent;
+import edu.cit.menardo.supplier.SupplierGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,7 +22,8 @@ class InventoryServiceImplTest {
 
     private final InventoryRepository repository = mock(InventoryRepository.class);
     private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
-    private final InventoryServiceImpl service = new InventoryServiceImpl(repository, events, 5);
+    private final SupplierGateway supplier = mock(SupplierGateway.class);
+    private final InventoryServiceImpl service = new InventoryServiceImpl(repository, events, supplier, 5, 20);
 
     @Test
     void publishesLowStockWhenAReservationDropsBelowTheThreshold() {
@@ -32,6 +36,7 @@ class InventoryServiceImplTest {
         assertThat(result.confirmed()).isTrue();
         assertThat(result.inventory().lowStock()).isTrue();
         verify(events).publishEvent(new LowStockEvent("P200", "Mechanical Keyboard", 4, 5));
+        verify(supplier).requestReorder("P200", 16);
     }
 
     @Test
@@ -43,6 +48,7 @@ class InventoryServiceImplTest {
         service.reserve("P100", 20);
 
         verify(events, never()).publishEvent(any(Object.class));
+        verify(supplier, never()).requestReorder(anyString(), anyInt());
     }
 
     @Test
