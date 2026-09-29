@@ -109,6 +109,11 @@ we do not guess what the code means. The order is set to `NEEDS_REVIEW`:
 - the product is free to be reordered again the next time it drops below the threshold,
   because `NEEDS_REVIEW` is not an "open" status.
 
+**Seen in practice:** on 2026-09-29, `PO-100329` (`RO-3`, P100) came back with **StatusCode 90**.
+The self-check page counts this as a cancelled order. Our log shows
+`RO-3 (PO-100329) has unexpected supplier status code 90`, then `RO-3 is now NEEDS_REVIEW`.
+P100 stayed at 4 units (the 24 units were not added).
+
 ## 6. Resilience
 
 | Requirement | How |

@@ -1,70 +1,15 @@
 # Reflection – Lab 3
 
-The questions are copied from the LegacySupply self-check page for client `23-6669-443`.
+These questions were copied from the LegacySupply self-check page for client `23-6669-443` on 2026-09-29.
 
-## 1. How long does a session last, and how does the adapter decide when to sign in again?
+## 1. PO-100329 (BuyerRef "RO-3") ended with StatusCode 90, which is not in the documentation. How did you work out what it means, and what does your system now do with the stock that will never arrive?
 
-A session lasts **180 seconds (3 minutes)** from the moment it is issued. I measured it twice:
+The manual only lists 10 Accepted, 20 Picking, 30 Shipped and 40 Delivered. So when `DeliveryTracker` polled PO-100329, it logged `RO-3 (PO-100329) has unexpected supplier status code 90` at 10:40:55 instead of guessing. I concluded that 90 means "cancelled" for three reasons: it comes after the normal 10→40 progression, the order never reached 40, and the self-check page counted our poll (flag `SAW_90`) under "Noticed a cancelled order". `LegacySupplyTranslator.toStatus` maps every unknown code to our own `NEEDS_REVIEW`, so RO-3 was set to `NEEDS_REVIEW`, and a `REORDER_STOPPED` notification says no stock is expected. No `SupplierOrderDelivered` event is published, so Inventory does not add the 24 units: P100 stays at 4 and is still flagged low stock. `NEEDS_REVIEW` is not an open status, so it is no longer polled, and the next reservation of P100 makes the reorder rule create a fresh reorder (a new `RO-` BuyerRef and a new X-Request-Id) instead of waiting forever for RO-3.
 
-- A token issued at 17:01:52Z and used every 20 seconds was accepted at +170 s and refused at +191 s.
-- A token issued at 17:06:01Z was accepted at +178 s and refused at +182 s with `E-AUTH-07 Session not valid`.
+## 2. LegacySupply never tells you how long a session lasts. Measure your session lifetime from your own logs, state the number, and explain how your adapter decides when to sign in again.
 
-Using the token does not make it last longer; the 180 seconds always count from sign-in.
+A session lasts **180 seconds** from sign-in. My probe token issued at 17:06:01Z was still accepted at +178 s and refused at +182 s with `E-AUTH-07 Session not valid`. An earlier token, used every 20 s, was refused between +170 s and +191 s, so using a session does not extend it. `LegacySupplyClient` remembers when it signed in, and `sendWithSession` signs in again once the session is older than 150 s (`legacysupply.session-renew-after-seconds`), leaving a 30 s margin. If LegacySupply still refuses the token with `E-AUTH-02`, `E-AUTH-03` or `E-AUTH-07`, `call()` clears the token and the next attempt signs in again. The two expired-session requests on my self-check record are both from my manual measurement, not from the adapter.
 
-`LegacySupplyClient` decides when to sign in again in two ways:
+## 3. The catalog reports PackSize and orders report Uom "CS". Using one of your own orders, show the arithmetic from "units your Inventory needed" to the Qty you sent, and to the units your Inventory received on delivery.
 
-1. **Before it expires:** it remembers when it signed in. If the session is older than 150 s
-   (`legacysupply.session-renew-after-seconds`), it signs in again before the next call. That
-   leaves 30 s of margin.
-2. **When it is refused anyway:** if LegacySupply answers `E-AUTH-02`, `E-AUTH-03` or `E-AUTH-07`,
-   the client throws the token away, signs in again and retries the same call. That retry counts
-   as one of the 3 attempts.
-
-Nobody has to paste a token by hand.
-
-## 2. From "units needed" to Qty sent to units received
-
-Order `RO-3`, product P100 Wireless Mouse. In the LegacySupply catalog it is `WLU-6392`, `PackSize` 24.
-
-| Step | Value |
-|---|---|
-| Stock after the customer order | 4 (below the threshold of 5) |
-| Reorder target | 20 |
-| Units our Inventory needed | 20 − 4 = **16** |
-| Qty sent to LegacySupply | ceil(16 / 24) = **1**, `Uom` `CS` (1 case) |
-| Units received on delivery | 1 × 24 = **24** |
-
-We round **up** so we never receive less than we need. `Qty` must be a whole number of cases,
-so ordering "16 units" is impossible. The conversion happens only in
-`LegacySupplyTranslator.casesFor` and `unitsIn`. Inventory only ever sees units: it asked for 16
-and, on delivery, the `SupplierOrderDelivered` event tells it to add 24.
-
-A second example is `RO-2` (P500 Headset, `PackSize` 6). We needed 16 units, sent `Qty` 3 and
-received 18 units: stock went from 4 to 22.
-
-## 3. If LegacySupply is replaced by a JSON supplier with different status codes, what changes?
-
-Classes that would change, all in `edu.cit.menardo.supplier`:
-
-| Class | Why it changes |
-|---|---|
-| `LegacySupplyXml` | Builds and reads XML. It would be replaced by JSON handling. |
-| `LegacySupplyClient` | URLs, headers (`X-LS-Session`), sign-in flow and error parsing are LegacySupply's. |
-| `LegacySupplyException` | Knows LegacySupply's error codes (`E-AUTH-07`, …). |
-| `LegacyOrderAck` | Shape of LegacySupply's order reply (`PoNumber`, `StatusCode`, `Uom`). |
-| `LegacySupplyTranslator` | SKUs, pack sizes and the status-code → `SupplierOrderStatus` mapping. |
-| `application.properties` | `legacysupply.*` settings. |
-
-Possibly also `ReorderSender` and `DeliveryTracker`, if the new supplier has no idempotency key
-or no "look up by reference" call. The retry/PENDING logic itself would stay.
-
-**Order and Inventory are not on the list.** They never see anything that belongs to LegacySupply:
-
-- Inventory calls `SupplierGateway.requestReorder(productId, unitsNeeded)`, which uses our
-  product ID and units.
-- Inventory restocks when it receives `SupplierOrderDelivered(reference, productId, units)`,
-  again in our own terms.
-- Order does not talk to the supplier at all.
-- `SupplierOrderStatus` is our own enum, so a new status code only changes the translator's mapping.
-- `ModuleDependencyTest.orderAndInventoryKnowNothingAboutLegacySupply` fails the build if `shop`
-  or `inventory` ever mention SKUs, pack sizes, `Uom`, status codes or LegacySupply classes.
+For RO-4, a customer order left P200 Mechanical Keyboard at 3 units, below the threshold of 5. With a reorder target of 20, Inventory called `SupplierGateway.requestReorder("P200", 17)`, because 20 − 3 = 17 units were needed. P200 is `WLU-9391` with a PackSize of 24, and `Qty` is counted in cases (`Uom` `CS`). So `LegacySupplyTranslator.casesFor` rounded up: ceil(17 / 24) = **1**, and we sent `Qty` 1 (PO-100330). When the tracker saw status 40 at 10:40:59, it published `SupplierOrderDelivered` with 1 × 24 = **24** units, and P200 went from 3 to 27. We received 7 more than we needed because LegacySupply only sells whole cases, and rounding up means we never receive less than we asked for.
