@@ -22,6 +22,7 @@ class OrderRecord {
     static final String CONFIRMED = "CONFIRMED";
     static final String REJECTED = "REJECTED";
     static final String CANCELLED = "CANCELLED";
+    static final String BACKORDERED = "BACKORDERED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -54,6 +55,16 @@ class OrderRecord {
 
     void cancel() {
         this.status = CANCELLED;
+    }
+
+    void cancel(String reason) {
+        this.status = CANCELLED;
+        this.reason = reason;
+    }
+
+    void confirm() {
+        this.status = CONFIRMED;
+        this.reason = null;
     }
 
     UUID getOrderId() {

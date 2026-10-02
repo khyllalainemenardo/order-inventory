@@ -1,95 +1,38 @@
-# Order + Inventory + Notification
+# Order + Inventory Shop
 
-A Spring Boot application with three modules:
+A simple shop app made with Spring Boot (backend) and React (frontend). It uses a Supabase database.
 
-* **Order** – handles orders
-* **Inventory** – manages product stock
-* **Notification** – records order and stock activities
+## Parts of the app
 
-The backend uses **Supabase PostgreSQL**, and the frontend uses **React + Vite**.
+* **Order** – places and cancels orders
+* **Inventory** – keeps track of stock
+* **Notification** – saves what happened
+* **Supplier** – orders more stock from LegacySupply
+* **Channel** – sells our products on Tiangge
 
-## Features
+## What it can do
 
-* Create multi-item orders
-* All-or-nothing orders
-* Cancel confirmed orders and return the stock
-* View orders
-* View current inventory
-* View notifications
-* Low-stock alerts
+* Place orders with one or more items
+* Cancel an order and get the stock back
+* Show orders, stock and notifications
+* Warn when stock is low and reorder it
 
-## Modules
+## How to run it
 
-```text
-Order
-  ↓
-Inventory
+**1. Database:** In Supabase SQL Editor, run `db/schema.sql`, then `db/lab4.sql`.
 
-Order ──→ Events ──→ Notification
-Inventory ──→ Events ──→ Notification
-```
-
-The Order module communicates with Inventory using `InventoryService`. Order and Inventory send events that the Notification module listens to.
-
-## API Endpoints
-
-| Method | Endpoint                       | Description        |
-| ------ | ------------------------------ | ------------------ |
-| POST   | `/api/orders`                  | Create an order    |
-| POST   | `/api/orders/{orderId}/cancel` | Cancel an order    |
-| GET    | `/api/orders`                  | View orders        |
-| GET    | `/api/inventory`               | View inventory     |
-| GET    | `/api/notifications`           | View notifications |
-
-## 1. Set Up Supabase
-
-Open **Supabase → SQL Editor** and run:
-
-```text
-db/schema.sql
-```
-
-This creates the required tables:
-
-* `inventory`
-* `orders`
-* `order_items`
-* `notifications`
-
-It also adds the starting stock:
-
-* P100 = 25
-* P200 = 10
-* P300 = 0
-
-To reset the data for testing, run:
-
-```text
-db/reset.sql
-```
-
-## 2. Run the Backend
-
-Set these environment variables:
+**2. Backend:**
 
 ```powershell
 $env:SUPABASE_DB_URL='jdbc:postgresql://POOLER-HOST:5432/postgres?sslmode=require'
 $env:SUPABASE_DB_USER='postgres.YOUR-PROJECT-REF'
 $env:SUPABASE_DB_PASSWORD='your-database-password'
-```
-
-Then run the backend:
-
-```bash
+$env:LS_API_KEY='your-api-key'
 cd backend
 mvn spring-boot:run
 ```
 
-You can also run `ShopApplication` directly from IntelliJ.
-
-## 3. Run the Frontend
-
-Open another terminal:
+**3. Frontend:**
 
 ```bash
 cd frontend
@@ -98,121 +41,59 @@ npm install
 npm run dev
 ```
 
-Open:
+Then open `http://localhost:5173`.
 
-```text
-http://localhost:5173
-```
-
-The frontend has four main sections:
-
-* **On the Shelf** – shows current inventory
-* **Cart** – add products and place orders
-* **Orders** – view and cancel orders
-* **Activity** – view notifications
-
-## 4. How the Order Works
-
-When placing an order, the system first checks all items.
-
-If all items have enough stock, the order is **CONFIRMED** and the stock is reduced.
-
-If even one item does not have enough stock, the whole order is **REJECTED** and no stock is removed.
-
-This keeps multi-item orders **all-or-nothing**.
-
-## 5. Cancellation
-
-Only confirmed orders can be cancelled.
-
-When an order is cancelled:
-
-1. The stock is returned.
-2. The order status becomes `CANCELLED`.
-3. A notification is created.
-
-Rejected orders cannot be cancelled because they did not reserve any stock.
-
-## 6. Notifications
-
-The Order and Inventory modules publish events.
-
-Examples:
-
-* `ORDER_CONFIRMED`
-* `ORDER_REJECTED`
-* `ORDER_CANCELLED`
-* `LOW_STOCK`
-
-The Notification module listens to these events and saves them in the database.
-
-## 7. Low Stock
-
-The low-stock threshold is **5**.
-
-When a product's stock goes below 5 after a successful reservation, a low-stock notification is created.
-
-## 8. Testing
-
-Run the tests with:
+**4. Tests:**
 
 ```bash
 cd backend
 mvn test
 ```
 
-The tests check orders, inventory, cancellation, notifications, and module dependencies.
+## How orders work
 
+* If every item has enough stock, the order is **CONFIRMED**.
+* If one item is short, the whole order is **REJECTED** and no stock is taken.
+* Only confirmed orders can be cancelled. Cancelling gives the stock back.
+* If stock goes below 5, the app reorders from the supplier.
 
-**Reflection**
+## API
 
-**1. How do multi-item orders stay all-or-nothing?**
+| Method | Endpoint                       | What it does       |
+| ------ | ------------------------------ | ------------------ |
+| POST   | `/api/orders`                  | Place an order     |
+| POST   | `/api/orders/{orderId}/cancel` | Cancel an order    |
+| GET    | `/api/orders`                  | List orders        |
+| GET    | `/api/inventory`               | List stock         |
+| GET    | `/api/notifications`           | List notifications |
+| GET    | `/api/channel/status`          | Tiangge status     |
 
-Everything happens inside one database transaction. `OrderService.place` is marked with `@Transactional`, so every `reserve()` 
-call and the order save are treated as one operation. First, the code checks every item to make sure there is enough stock. 
-If any item is short, nothing is reserved. If a reserve operation fails halfway through, an exception is thrown and the whole 
-transaction is rolled back, so any stock that was already reserved is automatically returned. If Order and Inventory were running 
-on separate servers, there would be no shared transaction. In that case, I would have to undo the work myself using a saga. 
-The items would be reserved one by one, and if one reservation failed, the system would call a “release” endpoint to return the stock 
-that had already been reserved. This is called a compensating transaction. Retries would also need an ID to make sure the same stock is not deducted twice, 
-and the system would need a way to handle situations where the Inventory service does not respond.
+## Supplier (Lab 3)
 
-**2. What changes when Order publishes an event instead of calling Notification?**
+When stock is low, the app orders more from LegacySupply. When the order arrives, the stock goes up. More details are in [INTEGRATION.md](INTEGRATION.md).
 
-When Order publishes an event instead of directly calling Notification, `OrderService` no longer needs to know that the Notification module exists. 
-It simply announces an event such as “order placed” or “order rejected,” and any module that is interested can listen to it. 
-This means Notification can be changed or even removed without needing to modify `OrderService`. In the current setup, 
-the listeners still run on the same thread and inside the same transaction. This means that if saving a notification fails, 
-the order can also fail. However, if Notification becomes its own microservice, a message broker such as RabbitMQ or Kafka would be needed to 
-carry the events between services. The system would also need delivery guarantees so that no event is lost. One common solution is an outbox table, 
-where the event is saved together with the order and then sent to the broker. Duplicate handling would also be necessary because a message broker may 
-deliver the same message more than once.
+## Tiangge marketplace (Lab 4)
 
-**3. Which module would I extract first, and what would change?**
+The app also sells on Tiangge. It works on its own:
 
-I would choose the **Notification** module to extract first because it would be the easiest to separate from the other modules. 
-No other module directly calls it, it only listens to events, and it has its own table. This also means that if Notification goes down, 
-the order process can still continue. Inventory would be more difficult to extract because Order calls it in the middle of a transaction, 
-which would require the saga approach discussed earlier. To extract Notification, I would first move the `notification` package into a new 
-Spring Boot application with its own database. Then, I would replace `@EventListener` with a message-broker listener and make the main application 
-send its events to the broker instead of using Spring’s in-memory event bus. Finally, I would point the frontend’s `GET /api/notifications` endpoint 
-to the new Notification service. The `OrderService` and `InventoryService` would remain mostly the same.
+* Every 3 seconds, it checks Tiangge for new orders.
+* For each order, it replies **accepted**, **rejected** or **backordered** (waiting for a supplier delivery).
+* When a buyer cancels, it gives the stock back and tells Tiangge.
+* When stock changes, it sends the new stock to Tiangge.
+* It saves every order ID, so the same order is never handled twice, even after a restart.
 
+## Lab 2 reflection
 
+**1. How do orders stay all-or-nothing?**
 
+The whole order runs in one database transaction. The app checks every item first, and if one is short, it takes nothing. If something fails halfway, everything is undone. If Order and Inventory were separate servers, I would need to give back the stock myself when something fails.
 
-## Lab 3: Supplier module (LegacySupply)
+**2. Why use events instead of calling Notification directly?**
 
-The `supplier` module is an Anti-Corruption Layer. When stock drops below the threshold,
-Inventory calls `SupplierGateway.requestReorder(productId, unitsNeeded)`. The supplier module
-then places and tracks a purchase order with LegacySupply. When the order is delivered it
-publishes `SupplierOrderDelivered`, and Inventory restocks.
+With events, the Order code does not need to know Notification exists. I can change or remove Notification without touching Order. If Notification became its own server, I would need a message system like Kafka to send the events, and a way to avoid losing or repeating them.
 
-Set the API key before starting the backend (never commit it):
+**3. Which part would I move out first?**
 
-```powershell
-$env:LS_API_KEY='your-legacysupply-api-key'
-```
+Notification, because nothing calls it directly and it has its own table. If it stops, orders still work. Inventory would be harder because Order needs it in the middle of every order.
 
-See [INTEGRATION.md](INTEGRATION.md) for the product mapping, session lifetime, error codes and
-resilience rules, and [REFLECTION.md](REFLECTION.md) for the reflection answers.
+The Lab 4 answers are in [REFLECTION.md](REFLECTION.md).

@@ -3,6 +3,7 @@ package edu.cit.menardo.inventory;
 import java.util.Optional;
 
 import edu.cit.menardo.inventory.events.LowStockEvent;
+import edu.cit.menardo.inventory.events.StockChangedEvent;
 import edu.cit.menardo.supplier.SupplierGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,7 +48,8 @@ class InventoryServiceImplTest {
 
         service.reserve("P100", 20);
 
-        verify(events, never()).publishEvent(any(Object.class));
+        verify(events, never()).publishEvent(any(LowStockEvent.class));
+        verify(events).publishEvent(new StockChangedEvent("P100", -20, 5));
         verify(supplier, never()).requestReorder(anyString(), anyInt());
     }
 

@@ -9,6 +9,8 @@ interface SupplierOrderRepository extends JpaRepository<SupplierOrder, Long> {
 
     Optional<SupplierOrder> findFirstByProductIdAndStatusIn(String productId, List<SupplierOrderStatus> statuses);
 
+    List<SupplierOrder> findByProductIdAndStatusIn(String productId, List<SupplierOrderStatus> statuses);
+
     List<SupplierOrder> findByStatusOrderByIdAsc(SupplierOrderStatus status);
 
     List<SupplierOrder> findByStatusInOrderByIdAsc(List<SupplierOrderStatus> statuses);

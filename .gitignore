@@ -19,3 +19,6 @@ npm-debug.log*
 *.iml
 .vscode/
 .DS_Store
+
+# --- logs ---
+*.log
