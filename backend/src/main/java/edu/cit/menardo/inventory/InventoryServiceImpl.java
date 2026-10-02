@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.cit.menardo.inventory.events.LowStockEvent;
+import edu.cit.menardo.inventory.events.StockChangedEvent;
 import edu.cit.menardo.supplier.SupplierGateway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -54,6 +55,7 @@ class InventoryServiceImpl implements InventoryService {
         if (!deducted) {
             return ReservationResult.rejected("Not enough stock for " + productId + ".", item);
         }
+        events.publishEvent(new StockChangedEvent(productId, -quantity, item.stock()));
 
         if (item.lowStock()) {
             events.publishEvent(new LowStockEvent(item.productId(), item.name(), item.stock(), lowStockThreshold));
@@ -71,6 +73,24 @@ class InventoryServiceImpl implements InventoryService {
         if (repository.addStock(productId, quantity) == 0) {
             throw new IllegalArgumentException("No product with id " + productId + ".");
         }
-        return getItem(productId).orElseThrow();
+        InventoryView item = getItem(productId).orElseThrow();
+        events.publishEvent(new StockChangedEvent(productId, quantity, item.stock()));
+        return item;
+    }
+
+    @Override
+    public int incomingUnits(String productId) {
+        return supplierGateway.unitsOnTheWay(productId);
+    }
+
+    @Override
+    @Transactional
+    public void reportShortage(String productId, int quantityWanted) {
+        InventoryView item = getItem(productId).orElse(null);
+        if (item == null) {
+            return;
+        }
+        int unitsNeeded = Math.max(reorderTarget - item.stock(), quantityWanted - item.stock());
+        supplierGateway.requestReorder(productId, Math.max(1, unitsNeeded));
     }
 }

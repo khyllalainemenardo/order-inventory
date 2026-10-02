@@ -64,6 +64,19 @@ class ModuleDependencyTest {
         }
     }
 
+    @Test
+    void orderAndInventoryDoNotKnowTianggeExists() throws IOException {
+        for (String module : List.of("shop", "inventory")) {
+            for (Path file : javaFiles(module)) {
+                String source = Files.readString(file);
+                assertThat(source).as(file.toString())
+                        .doesNotContainIgnoringCase("tiangge")
+                        .doesNotContain("edu.cit.menardo.channel")
+                        .doesNotContain("sellerSku");
+            }
+        }
+    }
+
     private static List<Path> javaFiles(String module) throws IOException {
         try (Stream<Path> paths = Files.walk(ROOT.resolve(module))) {
             return paths.filter(p -> p.toString().endsWith(".java")).toList();

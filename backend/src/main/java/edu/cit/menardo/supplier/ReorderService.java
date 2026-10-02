@@ -1,5 +1,6 @@
 package edu.cit.menardo.supplier;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 class ReorderService implements SupplierGateway {
 
     private static final Logger log = LoggerFactory.getLogger(ReorderService.class);
+
+    private static final List<SupplierOrderStatus> ON_THE_WAY = SupplierOrderStatus.TRACKED;
 
     private final SupplierOrderRepository repository;
     private final LegacySupplyTranslator translator;
@@ -46,5 +49,18 @@ class ReorderService implements SupplierGateway {
 
         events.publishEvent(new ReorderSaved(order.getId()));
         return order.toResult();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int unitsOnTheWay(String productId) {
+        return repository.findByProductIdAndStatusIn(productId, ON_THE_WAY).stream()
+                .mapToInt(SupplierOrder::getUnits)
+                .sum();
+    }
+
+    @Override
+    public Optional<String> supplierItemFor(String productId) {
+        return translator.knows(productId) ? Optional.of(translator.supplierSku(productId)) : Optional.empty();
     }
 }

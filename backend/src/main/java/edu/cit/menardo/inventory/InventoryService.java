@@ -12,4 +12,8 @@ public interface InventoryService {
     ReservationResult reserve(String productId, int quantity);
 
     InventoryView restock(String productId, int quantity);
+
+    int incomingUnits(String productId);
+
+    void reportShortage(String productId, int quantityWanted);
 }

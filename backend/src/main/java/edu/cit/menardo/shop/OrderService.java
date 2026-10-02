@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import edu.cit.menardo.inventory.InventoryService;
 import edu.cit.menardo.inventory.InventoryView;
 import edu.cit.menardo.inventory.ReservationResult;
 import edu.cit.menardo.shop.OrderResponse.ItemOutcome;
+import edu.cit.menardo.shop.events.OrderBackorderedEvent;
 import edu.cit.menardo.shop.events.OrderCancelledEvent;
 import edu.cit.menardo.shop.events.OrderPlacedEvent;
 import edu.cit.menardo.shop.events.OrderRejectedEvent;
@@ -35,6 +37,15 @@ public class OrderService {
 
     @Transactional
     public OrderResponse place(OrderRequest request) {
+        return place(request, false);
+    }
+
+    @Transactional
+    public OrderResponse placeAllowingBackorder(OrderRequest request) {
+        return place(request, true);
+    }
+
+    private OrderResponse place(OrderRequest request, boolean allowBackorder) {
         Map<String, Integer> lines = readLines(request);
 
         Map<String, InventoryView> stock = new LinkedHashMap<>();
@@ -51,7 +62,12 @@ public class OrderService {
         }
 
         if (!shortages.isEmpty()) {
-            return reject(lines, stock, String.join(" ", shortages));
+            String reason = String.join(" ", shortages);
+            if (allowBackorder && coveredByIncomingStock(lines, stock)) {
+                return backorder(lines, stock, reason);
+            }
+            reportShortages(lines, stock);
+            return reject(lines, stock, reason);
         }
 
         for (String productId : lines.keySet()) {
@@ -77,9 +93,14 @@ public class OrderService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Optional<OrderSummary> find(UUID orderId) {
+        return orderRepository.findById(orderId).map(OrderSummary::of);
+    }
+
     @Transactional
     public OrderSummary cancel(String orderId) {
-        OrderRecord order = findOrder(orderId);
+        OrderRecord order = findOrderForUpdate(orderId);
 
         if (order.getStatus().equals(OrderRecord.CANCELLED)) {
             throw new OrderException(HttpStatus.CONFLICT, "Order " + orderId + " is already cancelled.");
@@ -88,15 +109,65 @@ public class OrderService {
             throw new OrderException(HttpStatus.CONFLICT, "Order " + orderId + " was rejected, so there is no stock to return.");
         }
 
-        int totalQuantity = 0;
-        for (OrderItemRecord item : order.getItems()) {
-            inventoryService.restock(item.getProductId(), item.getQuantity());
-            totalQuantity += item.getQuantity();
-        }
+        boolean stockWasReserved = order.getStatus().equals(OrderRecord.CONFIRMED);
+        List<OrderItemRecord> items = List.copyOf(order.getItems());
+        // Change the status before touching inventory: its update queries flush and then clear the
+        // persistence context, so a change made to the order afterwards would never be saved.
         order.cancel();
+        int totalQuantity = 0;
+        for (OrderItemRecord item : items) {
+            if (stockWasReserved) {
+                inventoryService.restock(item.getProductId(), item.getQuantity());
+                totalQuantity += item.getQuantity();
+            }
+        }
 
-        events.publishEvent(new OrderCancelledEvent(order.getOrderId(), order.getItems().size(), totalQuantity));
+        events.publishEvent(new OrderCancelledEvent(order.getOrderId(), items.size(), totalQuantity));
         return OrderSummary.of(order);
+    }
+
+    private boolean coveredByIncomingStock(Map<String, Integer> lines, Map<String, InventoryView> stock) {
+        Map<String, Integer> alreadyPromised = backorderedQuantities();
+        for (Map.Entry<String, Integer> line : lines.entrySet()) {
+            String productId = line.getKey();
+            int onHand = stock.get(productId).stock();
+            if (onHand >= line.getValue()) {
+                continue;
+            }
+            int incoming = inventoryService.incomingUnits(productId);
+            int promised = alreadyPromised.getOrDefault(productId, 0);
+            if (incoming == 0 || onHand + incoming - promised < line.getValue()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Map<String, Integer> backorderedQuantities() {
+        Map<String, Integer> quantities = new LinkedHashMap<>();
+        for (OrderRecord order : orderRepository.findByStatusOrderByCreatedAtAsc(OrderRecord.BACKORDERED)) {
+            for (OrderItemRecord item : order.getItems()) {
+                quantities.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+            }
+        }
+        return quantities;
+    }
+
+    private void reportShortages(Map<String, Integer> lines, Map<String, InventoryView> stock) {
+        lines.forEach((productId, quantity) -> {
+            if (stock.get(productId).stock() < quantity) {
+                inventoryService.reportShortage(productId, quantity);
+            }
+        });
+    }
+
+    private OrderResponse backorder(Map<String, Integer> lines, Map<String, InventoryView> stock, String reason) {
+        OrderRecord order = saveOrder(OrderRecord.BACKORDERED, reason, lines);
+        events.publishEvent(new OrderBackorderedEvent(order.getOrderId()));
+
+        List<ItemOutcome> outcomes = new ArrayList<>();
+        lines.forEach((productId, quantity) -> outcomes.add(new ItemOutcome(productId, quantity, ItemOutcome.NOT_RESERVED)));
+        return new OrderResponse(order.getOrderId(), OrderRecord.BACKORDERED, reason, outcomes, List.copyOf(stock.values()));
     }
 
     private OrderResponse reject(Map<String, Integer> lines, Map<String, InventoryView> stock, String reason) {
@@ -118,9 +189,9 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    private OrderRecord findOrder(String orderId) {
+    private OrderRecord findOrderForUpdate(String orderId) {
         try {
-            return orderRepository.findById(UUID.fromString(orderId))
+            return orderRepository.findForUpdate(UUID.fromString(orderId))
                     .orElseThrow(() -> new OrderException(HttpStatus.NOT_FOUND, "No order with id " + orderId + "."));
         } catch (IllegalArgumentException notAUuid) {
             throw new OrderException(HttpStatus.NOT_FOUND, "No order with id " + orderId + ".");

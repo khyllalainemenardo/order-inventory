@@ -13,6 +13,7 @@ import edu.cit.menardo.inventory.InventoryService;
 import edu.cit.menardo.inventory.InventoryView;
 import edu.cit.menardo.inventory.ReservationResult;
 import edu.cit.menardo.shop.OrderResponse.ItemOutcome;
+import edu.cit.menardo.shop.events.OrderBackorderedEvent;
 import edu.cit.menardo.shop.events.OrderCancelledEvent;
 import edu.cit.menardo.shop.events.OrderPlacedEvent;
 import edu.cit.menardo.shop.events.OrderRejectedEvent;
@@ -158,6 +159,51 @@ class OrderServiceTest {
         assertThat(inventory.restockCalls).isZero();
     }
 
+    @Test
+    void backordersWhenEveryShortItemIsAlreadyOnTheWay() {
+        inventory.incoming.put("P300", 24);
+
+        OrderResponse response = service.placeAllowingBackorder(order(line("P100", 2), line("P300", 3)));
+
+        assertThat(response.status()).isEqualTo("BACKORDERED");
+        assertThat(inventory.reserveCalls).as("nothing reserved until the delivery arrives").isZero();
+        verify(events).publishEvent(any(OrderBackorderedEvent.class));
+    }
+
+    @Test
+    void rejectsInsteadOfBackorderingWhenNothingIsOnTheWay() {
+        OrderResponse response = service.placeAllowingBackorder(order(line("P300", 3)));
+
+        assertThat(response.status()).isEqualTo("REJECTED");
+        assertThat(inventory.shortagesReported).containsExactly("P300");
+    }
+
+    @Test
+    void rejectsWhenTheIncomingStockIsAlreadyPromisedToEarlierBackorders() {
+        inventory.incoming.put("P300", 4);
+        OrderRecord earlier = storedOrder("BACKORDERED", Map.of("P300", 3));
+        when(orders.findByStatusOrderByCreatedAtAsc("BACKORDERED")).thenReturn(List.of(earlier));
+
+        OrderResponse response = service.placeAllowingBackorder(order(line("P300", 2)));
+
+        assertThat(response.status()).isEqualTo("REJECTED");
+    }
+
+    @Test
+    void ordersFromOurOwnUiAreNeverBackordered() {
+        inventory.incoming.put("P300", 24);
+
+        assertThat(service.place(order(line("P300", 1))).status()).isEqualTo("REJECTED");
+    }
+
+    @Test
+    void cancellingABackorderReturnsNothingToStock() {
+        OrderRecord backordered = storedOrder("BACKORDERED", Map.of("P300", 2));
+
+        assertThat(service.cancel(backordered.getOrderId().toString()).status()).isEqualTo("CANCELLED");
+        assertThat(inventory.restockCalls).isZero();
+    }
+
     private static OrderRequest order(OrderRequest.Item... lines) {
         return new OrderRequest(List.of(lines));
     }
@@ -175,6 +221,7 @@ class OrderServiceTest {
             }
         };
         new java.util.TreeMap<>(lines).forEach(order::addItem);
+        when(orders.findForUpdate(id)).thenReturn(Optional.of(order));
         when(orders.findById(id)).thenReturn(Optional.of(order));
         return order;
     }
@@ -183,6 +230,8 @@ class OrderServiceTest {
 
         private final Map<String, Integer> stock = new LinkedHashMap<>();
         final Set<String> failReserveFor = new HashSet<>();
+        final Map<String, Integer> incoming = new LinkedHashMap<>();
+        final Set<String> shortagesReported = new HashSet<>();
         int reserveCalls;
         int restockCalls;
 
@@ -232,6 +281,16 @@ class OrderServiceTest {
             restockCalls++;
             stock.merge(productId, quantity, Integer::sum);
             return view(productId);
+        }
+
+        @Override
+        public int incomingUnits(String productId) {
+            return incoming.getOrDefault(productId, 0);
+        }
+
+        @Override
+        public void reportShortage(String productId, int quantityWanted) {
+            shortagesReported.add(productId);
         }
     }
 }

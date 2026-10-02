@@ -1,3 +1,6 @@
+drop table if exists public.channel_orders;
+drop table if exists public.channel_events;
+drop table if exists public.channel_cursor;
 drop table if exists public.supplier_orders;
 drop table if exists public.notifications;
 drop table if exists public.order_items;
@@ -12,7 +15,7 @@ create table public.inventory (
 
 create table public.orders (
     order_id   uuid primary key default gen_random_uuid(),
-    status     text        not null check (status in ('CONFIRMED', 'REJECTED', 'CANCELLED')),
+    status     text        not null check (status in ('CONFIRMED', 'REJECTED', 'CANCELLED', 'BACKORDERED')),
     reason     text,
     created_at timestamptz not null default now()
 );
@@ -68,3 +71,4 @@ values ('P100', 'Wireless Mouse', 25),
        ('P300', 'USB-C Hub', 0),
        ('P400', 'USB-C Cable 1m', 12),
        ('P500', 'Headset with Mic', 8);
+

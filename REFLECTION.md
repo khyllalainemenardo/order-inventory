@@ -1,15 +1,27 @@
-# Reflection – Lab 3
 
-These questions were copied from the LegacySupply self-check page for client `23-6669-443` on 2026-09-29.
+# Reflection – Lab 4 (Marketplace)
 
-## 1. PO-100329 (BuyerRef "RO-3") ended with StatusCode 90, which is not in the documentation. How did you work out what it means, and what does your system now do with the stock that will never arrive?
 
-The manual only lists 10 Accepted, 20 Picking, 30 Shipped and 40 Delivered. So when `DeliveryTracker` polled PO-100329, it logged `RO-3 (PO-100329) has unexpected supplier status code 90` at 10:40:55 instead of guessing. I concluded that 90 means "cancelled" for three reasons: it comes after the normal 10→40 progression, the order never reached 40, and the self-check page counted our poll (flag `SAW_90`) under "Noticed a cancelled order". `LegacySupplyTranslator.toStatus` maps every unknown code to our own `NEEDS_REVIEW`, so RO-3 was set to `NEEDS_REVIEW`, and a `REORDER_STOPPED` notification says no stock is expected. No `SupplierOrderDelivered` event is published, so Inventory does not add the 24 units: P100 stays at 4 and is still flagged low stock. `NEEDS_REVIEW` is not an open status, so it is no longer polled, and the next reservation of P100 makes the reorder rule create a fresh reorder (a new `RO-` BuyerRef and a new X-Request-Id) instead of waiting forever for RO-3.
+## 1. Tiangge order TG-GLNKDK (8 x P300) was accepted at 22:39:17. At that moment your last published stock for P300 was 7, and the stock Tiangge worked out from your own decisions, cancellations and deliveries was 7. Where did your application's stock figure come from, and why did it disagree?
 
-## 2. LegacySupply never tells you how long a session lasts. Measure your session lifetime from your own logs, state the number, and explain how your adapter decides when to sign in again.
+My app reads its stock from the `inventory` table in my database. A delivery at 22:39:12 brought P300 up to 20, and two other orders used 5, so 15 were left. That was enough for 8, so my app filled TG-GLNKDK and the stock dropped to 7. But my app sent "P300 is now 7" to Tiangge at 22:39:17.012, before it sent "TG-GLNKDK is accepted" at 22:39:17.543. So Tiangge saw 7 in stock and then an order of 8, and counted it as an oversell. My count was right; the messages were just sent in the wrong order.
 
-A session lasts **180 seconds** from sign-in. My probe token issued at 17:06:01Z was still accepted at +178 s and refused at +182 s with `E-AUTH-07 Session not valid`. An earlier token, used every 20 s, was refused between +170 s and +191 s, so using a session does not extend it. `LegacySupplyClient` remembers when it signed in, and `sendWithSession` signs in again once the session is older than 150 s (`legacysupply.session-renew-after-seconds`), leaving a 30 s margin. If LegacySupply still refuses the token with `E-AUTH-02`, `E-AUTH-03` or `E-AUTH-07`, `call()` clears the token and the next attempt signs in again. The two expired-session requests on my self-check record are both from my manual measurement, not from the adapter.
+## 2. Event evt_a361f217b67587d3 (order TG-KP9693) reached your application twice, as seq 1 and seq 10, and you processed it once. Show the code and the stored data that made the second delivery harmless, and explain what would happen if your application restarted between the two.
 
-## 3. The catalog reports PackSize and orders report Uom "CS". Using one of your own orders, show the arithmetic from "units your Inventory needed" to the Qty you sent, and to the units your Inventory received on delivery.
+My app saves the ID of every event it handles, and skips any ID it has already seen:
 
-For RO-4, a customer order left P200 Mechanical Keyboard at 3 units, below the threshold of 5. With a reorder target of 20, Inventory called `SupplierGateway.requestReorder("P200", 17)`, because 20 − 3 = 17 units were needed. P200 is `WLU-9391` with a PackSize of 24, and `Qty` is counted in cases (`Uom` `CS`). So `LegacySupplyTranslator.casesFor` rounded up: ceil(17 / 24) = **1**, and we sent `Qty` 1 (PO-100330). When the tracker saw status 40 at 10:40:59, it published `SupplierOrderDelivered` with 1 × 24 = **24** units, and P200 went from 3 to 27. We received 7 more than we needed because LegacySupply only sells whole cases, and rounding up means we never receive less than we asked for.
+```java
+if (processedEvents.existsById(event.eventId())) {
+    log.info("Skipping redelivered event {} ...");
+} else {
+    ...
+    processedEvents.save(new ProcessedEvent(event.eventId(), event.seq(), event.type(), event.orderId()));
+}
+moveCursor(event.seq());
+```
+
+The first copy (seq 1) created the order at 21:45:43 and saved this row in `channel_events`: `evt_a361f217b67587d3 | seq 1 | ORDER_PLACED | TG-KP9693`. When the second copy (seq 10) came at 21:50:24, the app found the ID and logged `Skipping redelivered event evt_a361f217b67587d3 (seq 10, ...)`, so only one order was made. A restart in between would not change this, because the ID is saved in the database, not in memory. After restarting, the app still finds the ID and skips seq 10.
+
+## 3. Order TG-JTSKQ4 was backordered at 21:54:11 and accepted at 21:56:58, after PO-101963 was delivered at 21:56:25. Trace how the delivery reached your Inventory and what then resumed the backordered order.
+
+TG-JTSKQ4 wanted 5 P100, but we did not have enough, so it waited as a backorder because supplier order RO-5 (PO-101963) was coming. The delivery came while my app was off for the restart test. After the restart, `DeliveryTracker` checked RO-5 and logged `RO-5 is now DELIVERED` at 21:56:57. Inventory then added the new stock, and `BackorderService` saw there was now enough P100, so it filled the order at 21:56:58. Finally, my app told Tiangge the order was accepted, and Tiangge confirmed it at 21:56:59.

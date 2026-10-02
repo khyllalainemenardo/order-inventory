@@ -59,6 +59,31 @@
       "name": "supplier.track-deliveries-every-ms",
       "type": "java.lang.Long",
       "description": "How often open supplier orders are checked."
+    },
+    {
+      "name": "orders.backorder-max-wait-seconds",
+      "type": "java.lang.Long",
+      "description": "A backorder not filled within this time is cancelled."
+    },
+    {
+      "name": "orders.backorder-review-every-ms",
+      "type": "java.lang.Long",
+      "description": "How often waiting backorders are re-checked."
+    },
+    {
+      "name": "tiangge.base-url",
+      "type": "java.lang.String",
+      "description": "Tiangge seller API base URL."
+    },
+    {
+      "name": "tiangge.poll-every-ms",
+      "type": "java.lang.Long",
+      "description": "How often the Tiangge order feed is read."
+    },
+    {
+      "name": "tiangge.heartbeat-every-seconds",
+      "type": "java.lang.Long",
+      "description": "Heartbeat interval (at most what Tiangge asks for)."
     }
   ]
 }
